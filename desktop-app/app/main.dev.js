@@ -70,10 +70,9 @@ if (
 }
 
 const installExtensions = async () => {
-  const forceDownload = !!process.env.UPGRADE_EXTENSIONS;
   const extensions = [REACT_DEVELOPER_TOOLS, REDUX_DEVTOOLS];
   try {
-    const statuses = await installExtension(extensions);
+    await installExtension(extensions);
     devtron.install();
   } catch (err) {
     console.log('Error installing extensions', err);
@@ -153,10 +152,7 @@ app.on('login', (event, webContents, request, authInfo, callback) => {
 
 const createWindow = async () => {
   hasActiveWindow = true;
-  if (
-    process.env.NODE_ENV === 'development' ||
-    process.env.DEBUG_PROD === 'true'
-  ) {
+  if (process.env.NODE_ENV === 'development') {
     await installExtensions();
   }
 
@@ -232,6 +228,14 @@ const createWindow = async () => {
     nativeTheme.themeSource = scheme || 'system';
   });
 
+  ipcMain.handle('install-extension', async (event, id) => {
+    return installExtension(id, true);
+  });
+
+  ipcMain.on('uninstall-extension', (event, name) => {
+    return BrowserWindow.removeDevToolsExtension(name);
+  });
+
   ipcMain.on('open-devtools', (event, ...args) => {
     const {webViewId, bounds, mode} = args[0];
     if (!webViewId) {
@@ -297,7 +301,7 @@ const createWindow = async () => {
 
   appUpdater.on('status-changed', nextStatus => {
     menuBuilder.buildMenu(true);
-    // update status bar info
+    mainWindow.webContents.send('updater-status-changed', {nextStatus});
   });
   // Remove this if your app does not use auto updates
   appUpdater.checkForUpdatesAndNotify();

@@ -22,6 +22,7 @@ import {DEVTOOLS_MODES} from '../constants/previewerLayouts';
 import console from 'electron-timber';
 
 export const NEW_ADDRESS = 'NEW_ADDRESS';
+export const NEW_PAGE_META_FIELD = 'NEW_PAGE_META_FIELD';
 export const NEW_DEV_TOOLS_CONFIG = 'NEW_DEV_TOOLS_CONFIG';
 export const NEW_HOMEPAGE = 'NEW_HOMEPAGE';
 export const NEW_ZOOM_LEVEL = 'NEW_ZOOM_LEVEL';
@@ -38,11 +39,20 @@ export const NEW_USER_PREFERENCES = 'NEW_USER_PREFERENCES';
 export const TOGGLE_BOOKMARK = 'TOGGLE_BOOKMARK';
 export const NEW_WINDOW_SIZE = 'NEW_WINDOW_SIZE';
 export const DEVICE_LOADING = 'DEVICE_LOADING';
+export const NEW_FOCUSED_DEVICE = 'NEW_FOCUSED_DEVICE';
 
 export function newAddress(address) {
   return {
     type: NEW_ADDRESS,
     address,
+  };
+}
+
+export function newPageMetaField(name, value) {
+  return {
+    type: NEW_PAGE_META_FIELD,
+    name,
+    value,
   };
 }
 
@@ -116,6 +126,13 @@ export function newPreviewerConfig(previewer) {
   };
 }
 
+export function newFocusedDevice(previewer) {
+  return {
+    type: NEW_FOCUSED_DEVICE,
+    previewer,
+  };
+}
+
 export function newActiveDevices(devices) {
   return {
     type: NEW_ACTIVE_DEVICES,
@@ -172,6 +189,12 @@ export function onAddressChange(newURL, force) {
 
     dispatch(newAddress(newURL));
     pubsub.publish(ADDRESS_CHANGE, [{address: newURL, force: false}]);
+  };
+}
+
+export function onPageMetaFieldUpdate(name, value) {
+  return (dispatch: Dispatch, getState: RootStateType) => {
+    dispatch(newPageMetaField(name, value));
   };
 }
 
@@ -298,6 +321,25 @@ export function setPreviewLayout(newLayout) {
       newPreviewerConfig({
         ...previewer,
         layout: newLayout,
+      })
+    );
+  };
+}
+
+export function setFocusedDevice(focusedDeviceId) {
+  return (dispatch: Dispatch, getState: RootStateType) => {
+    const {
+      browser: {previewer},
+    } = getState();
+
+    if (previewer.focusedDeviceId === focusedDeviceId) {
+      return;
+    }
+
+    dispatch(
+      newFocusedDevice({
+        ...previewer,
+        focusedDeviceId,
       })
     );
   };

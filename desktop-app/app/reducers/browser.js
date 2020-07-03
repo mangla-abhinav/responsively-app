@@ -17,6 +17,8 @@ import {
   NEW_INSPECTOR_STATUS,
   NEW_WINDOW_SIZE,
   DEVICE_LOADING,
+  NEW_FOCUSED_DEVICE,
+  NEW_PAGE_META_FIELD,
 } from '../actions/browser';
 import type {Action} from './types';
 import getAllDevices from '../constants/devices';
@@ -92,6 +94,13 @@ type DrawerType = {
 
 type PreviewerType = {
   layout: string,
+  previousLayout: string,
+  focusedDeviceId: string,
+};
+
+type PageMetaType = {
+  title: String,
+  favicons: Array<string>,
 };
 
 type UserPreferenceType = {
@@ -109,6 +118,7 @@ export type BrowserStateType = {
   devices: Array<Device>,
   homepage: string,
   address: string,
+  currentPageMeta: PageMetaType,
   zoomLevel: number,
   scrollPosition: ScrollPositionType,
   navigatorStatus: NavigatorStatusType,
@@ -209,6 +219,7 @@ export default function browser(
     address: _getUserPreferences().reopenLastAddress
       ? getLastOpenedAddress()
       : getHomepage(),
+    currentPageMeta: {},
     zoomLevel: 0.6,
     previousZoomLevel: null,
     scrollPosition: {x: 0, y: 0},
@@ -246,7 +257,15 @@ export default function browser(
   switch (action.type) {
     case NEW_ADDRESS:
       saveLastOpenedAddress(action.address);
-      return {...state, address: action.address};
+      return {...state, address: action.address, currentPageMeta: {}};
+    case NEW_PAGE_META_FIELD:
+      return {
+        ...state,
+        currentPageMeta: {
+          ...state.currentPageMeta,
+          [action.name]: action.value,
+        },
+      };
     case NEW_HOMEPAGE:
       const {homepage} = action;
       saveHomepage(homepage);
@@ -265,6 +284,8 @@ export default function browser(
       return {...state, drawer: action.drawer};
     case NEW_PREVIEWER_CONFIG:
       const updateObject = {previewer: action.previewer};
+      updateObject.previewer.previousLayout = state.previewer.layout;
+
       if (
         state.previewer.layout !== INDIVIDUAL_LAYOUT &&
         action.previewer.layout === INDIVIDUAL_LAYOUT
@@ -280,6 +301,8 @@ export default function browser(
         updateObject.previousZoomLevel = null;
       }
       return {...state, ...updateObject};
+    case NEW_FOCUSED_DEVICE:
+      return {...state, previewer: action.previewer};
     case NEW_ACTIVE_DEVICES:
       _saveActiveDevices(action.devices);
       return {...state, devices: action.devices};
