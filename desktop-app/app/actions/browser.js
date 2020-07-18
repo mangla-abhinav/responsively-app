@@ -1,7 +1,8 @@
 // @flow
-import type {Dispatch, BrowserStateType} from '../reducers/types';
 import {ipcRenderer, remote} from 'electron';
 import pubsub from 'pubsub.js';
+import console from 'electron-timber';
+import type {Dispatch, BrowserStateType} from '../reducers/types';
 import {
   SCROLL_DOWN,
   SCROLL_UP,
@@ -12,6 +13,7 @@ import {
   FLIP_ORIENTATION_ALL_DEVICES,
   ENABLE_INSPECTOR_ALL_DEVICES,
   DISABLE_INSPECTOR_ALL_DEVICES,
+  TOGGLE_DEVICE_MUTED_STATE,
   RELOAD_CSS,
   DELETE_STORAGE,
   ADDRESS_CHANGE,
@@ -19,7 +21,6 @@ import {
 } from '../constants/pubsubEvents';
 import {getBounds, getDefaultDevToolsWindowSize} from '../reducers/browser';
 import {DEVTOOLS_MODES} from '../constants/previewerLayouts';
-import console from 'electron-timber';
 
 export const NEW_ADDRESS = 'NEW_ADDRESS';
 export const NEW_PAGE_META_FIELD = 'NEW_PAGE_META_FIELD';
@@ -40,6 +41,8 @@ export const TOGGLE_BOOKMARK = 'TOGGLE_BOOKMARK';
 export const NEW_WINDOW_SIZE = 'NEW_WINDOW_SIZE';
 export const DEVICE_LOADING = 'DEVICE_LOADING';
 export const NEW_FOCUSED_DEVICE = 'NEW_FOCUSED_DEVICE';
+export const TOGGLE_ALL_DEVICES_MUTED = 'TOGGLE_ALL_DEVICES_MUTED';
+export const TOGGLE_DEVICE_MUTED = 'TOGGLE_DEVICE_MUTED';
 
 export function newAddress(address) {
   return {
@@ -168,6 +171,21 @@ export function newDeviceLoading(device) {
   };
 }
 
+export function toggleAllDevicesMuted(allDevicesMuted) {
+  return {
+    type: TOGGLE_ALL_DEVICES_MUTED,
+    allDevicesMuted,
+  };
+}
+
+export function toggleDeviceMuted(deviceId, isMuted) {
+  return {
+    type: TOGGLE_DEVICE_MUTED,
+    deviceId,
+    isMuted,
+  };
+}
+
 export function onAddressChange(newURL, force) {
   return (dispatch: Dispatch, getState: RootStateType) => {
     const {
@@ -178,12 +196,6 @@ export function onAddressChange(newURL, force) {
       if (force) {
         pubsub.publish(NAVIGATION_RELOAD, [{ignoreCache: false}]);
       }
-      return;
-    }
-
-    const isHashDiff = isHashOnlyChange(newURL, address);
-
-    if (isHashDiff) {
       return;
     }
 
@@ -352,7 +364,7 @@ export function setActiveDevices(newDevices) {
     } = getState();
 
     if (false) {
-      //TODO verify the devices list and return if the order of the devices didn;t change;
+      // TODO verify the devices list and return if the order of the devices didn;t change;
       return;
     }
 
@@ -462,7 +474,7 @@ export function onDevToolsModeChange(newMode) {
       mode: newMode,
       open: newOpen,
     };
-    if (newMode != DEVTOOLS_MODES.UNDOCKED) {
+    if (newMode !== DEVTOOLS_MODES.UNDOCKED) {
       const size = getDefaultDevToolsWindowSize(newMode, windowSize);
       const bounds = getBounds(newMode, size, windowSize);
       newConfig = {
@@ -617,7 +629,7 @@ export function onDevToolsClose(devToolsInfo, closeAll) {
     devToolsToClose.forEach(({webViewId}) => {
       ipcRenderer.send('close-devtools', {webViewId});
       newActiveDevTools = newActiveDevTools.filter(
-        ({webViewId: _webViewId}) => _webViewId != webViewId
+        ({webViewId: _webViewId}) => _webViewId !== webViewId
       );
     });
 
@@ -666,6 +678,23 @@ export function screenshotAllDevices() {
 export function flipOrientationAllDevices() {
   return (dispatch: Dispatch, getState: RootStateType) => {
     pubsub.publish(FLIP_ORIENTATION_ALL_DEVICES);
+  };
+}
+
+export function onAllDevicesMutedChange() {
+  return (dispatch: Dispatch, getState: RootStateType) => {
+    const {
+      browser: {allDevicesMuted},
+    } = getState();
+    const next = !allDevicesMuted;
+    pubsub.publish(TOGGLE_DEVICE_MUTED_STATE, [{muted: next}]);
+    dispatch(toggleAllDevicesMuted(next));
+  };
+}
+
+export function onDeviceMutedChange(deviceId, isMuted) {
+  return (dispatch: Dispatch, getState: RootStateType) => {
+    dispatch(toggleDeviceMuted(deviceId, isMuted));
   };
 }
 

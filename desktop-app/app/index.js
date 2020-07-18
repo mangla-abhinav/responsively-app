@@ -1,4 +1,6 @@
+/* eslint-disable import/first */
 require('dotenv').config();
+
 import React from 'react';
 import {remote} from 'electron';
 import {render} from 'react-dom';
@@ -8,6 +10,8 @@ import {configureStore, history} from './store/configureStore';
 import './app.global.css';
 import * as Sentry from '@sentry/electron';
 import console from 'electron-timber';
+
+require('dotenv').config();
 
 if (remote.getGlobal('process').env.NODE_ENV !== 'development') {
   Sentry.init({
@@ -27,8 +31,9 @@ if (remote.getGlobal('process').env.NODE_ENV !== 'development') {
   });
 }
 
-window.heap &&
+if (window.heap) {
   window.heap.addUserProperties({appVersion: remote.app.getVersion()});
+}
 
 const store = configureStore();
 
